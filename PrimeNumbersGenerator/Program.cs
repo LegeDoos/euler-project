@@ -8,7 +8,7 @@ namespace PrimeNumbersGenerator
         static void Main(string[] args)
         {
             PrimeNumbers prim = new();
-            prim.CalculateTo = 100000000;
+            prim.CalculateTo = 10000;
             prim.CalculatePrimeNumbers();
 
             //string result = String.Empty;
