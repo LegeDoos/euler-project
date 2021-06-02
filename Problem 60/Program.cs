@@ -7,8 +7,10 @@ namespace Problem_60
     {
         static void Main(string[] args)
         {
-            PrimeNumbers prim = PrimeNumbers.LoadFromFile($"{Directory.GetParent(Directory.GetCurrentDirectory()).Parent.Parent.FullName}\\PrimeNumbers_10000.json");
-            Problem60Solver solver = new Problem60Solver(prim);
+            PrimeNumbers primes = new PrimeNumbers();
+            primes.CalculateTo = 110000;
+            primes.CalculatePrimeNumbers();
+            Problem60Solver solver = new Problem60Solver(primes);
             solver.Solve();
         }
     }
