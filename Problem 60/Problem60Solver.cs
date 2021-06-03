@@ -9,6 +9,18 @@ namespace Problem_60
     class Problem60Solver
     {
         /// <summary>
+        /// The number of nodes to solve the problem for
+        /// </summary>
+        public int NumberOfNodes { get; set; }
+
+        /// <summary>
+        /// The number of relations required between the numbrs to find the solution
+        /// </summary>
+        private int NumberOfRelations {
+            get { return NumberOfNodes - 1; }
+        }
+
+        /// <summary>
         /// Contains the list of prime numbers to analyze
         /// </summary>
         public List<int> PrimeNumbers { get; private set; }
@@ -19,12 +31,23 @@ namespace Problem_60
         private List<Relation> Relations { get; set; }
 
         /// <summary>
+        /// Sets of primes, represented by a string and the sum of that set (meets requirements or not)
+        /// </summary>
+        private Dictionary<string, int> Sets { get; set; } //<"2,4,6,7", 78>
+
+        /// <summary>
+        /// The nodes that are used in the sets
+        /// </summary>
+        private List<int> Nodes { get; set; }
+
+        /// <summary>
         /// Constructor
         /// </summary>
         /// <param name="_primeNumbers"></param>
         public Problem60Solver(PrimeNumbers _primeNumbers)
         {
             PrimeNumbers = _primeNumbers.Numbers;
+            NumberOfNodes = 3; //default
             Relations = new();
         }
 
@@ -50,37 +73,113 @@ namespace Problem_60
                         return result;
                     }
                 }
-
             }
-
-
-            
 
             return null;
         }
 
-        private List<int> AnalyzeResult()
+        private string AnalyzeResult()
         {
             // there have to be at least 5 nodes with 4 incoming and 4 outgoing relations
             var fromCount = from r in Relations
                        group r.From by r.From into c
-                       where c.Count() >= 4
+                       where c.Count() >= NumberOfRelations
                        select new { From = c.Key, Count = c.Count() };
 
             var toCount = from r in Relations
                             group r.To by r.To into c
-                            where c.Count() >= 4
+                            where c.Count() >= NumberOfRelations
                             select new { To = c.Key, Count = c.Count() };
 
-            if (fromCount.Count() > 2 && toCount.Count() > 2 )
+            if (fromCount.Count() >= NumberOfNodes && toCount.Count() >= NumberOfNodes )
             {
-                /*var join = fromCount.Join(toCount,
+                // check for the nodes, they have to be the same
+
+                var currentNodes = fromCount.Join(toCount,
                                             f => f.From,
                                             t => t.To,
-                                            (f, t) => new { From = f.From, To = t.To }
-                    );*/
+                                            (f, t) => f.From);
+
+                if (currentNodes.Count() == NumberOfNodes && Nodes == null)
+                {
+                    // the minimum requirements are met so we can pick the nodes and create the relations
+                    Nodes = new();
+                    foreach (var node in currentNodes)
+                    {
+                        Nodes.Add(node);
+                    }
+                    if (CheckRelations())
+                    {
+                        // success!
+                        var maxSum = Sets.Values.Max();
+                        return
+
+                    }
+
+                }
+                else if (currentNodes.Count() > NumberOfNodes)
+                {
+                    // a new node is added so we can check the relation with the new node
+                    foreach (var node in currentNodes)
+                    {
+                        if (!Nodes.Exists(n => n.Equals(node)))
+                        {
+                            Nodes.Add(node);
+                            bool result = false;
+                            result = CheckRelations(node) || result; //this way result is true if one of the nodes is succesfull
+                            if (result)
+                            {
+                                //check wich one and return
+                            }
+                        }
+                    }
+                }
+
             }
-            
+            return null;
+        }
+
+        /// <summary>
+        /// Generate all combinations and check
+        /// </summary>
+        /// <param name="_newNode">The newly added node, -1 if no node is added (initial check)</param>
+        /// <returns>True on victory!</returns>
+        private bool CheckRelations(int _newNode = -1)
+        {
+            List<int> ResultSet = null;
+            string setKey;
+            int setSum = 0;
+            bool ret = true;
+
+            if (_newNode == -1)
+            {
+                setSum = 0;
+                // create initial group. This is exactly one set that meets the requirments
+                foreach (var sourceNode in Nodes)
+                {
+                    setSum += sourceNode;
+                    // each node has a relation with all other nodes. There are no one way relation so you only have to check From (or To)
+                    foreach (var targetNode in Nodes.Where(n => n!=sourceNode))
+                    {
+                        if (!Relations.Exists(r => r.From.Equals(sourceNode) && r.To.Equals(targetNode)))
+                        {
+                            // no relation so fail
+                            ret = false;
+                        }
+                    }
+                }
+                if (ret)
+                {
+                    setKey = String.Join(";", Nodes);
+                    Sets.Add(setKey, setSum);
+                }
+            }
+            else
+            {
+
+            }
+
+
             return null;
         }
 
@@ -118,7 +217,7 @@ namespace Problem_60
                         }
                     }
                 }
-                factor = factor * 10;
+                factor *= 10;
                 primeLeft = _prime / factor;
                 primeRight = _prime % factor;
             }
