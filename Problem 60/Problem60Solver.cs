@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Facet.Combinatorics;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -33,7 +34,7 @@ namespace Problem_60
         /// <summary>
         /// Sets of primes, represented by a string and the sum of that set (meets requirements or not)
         /// </summary>
-        private Dictionary<string, int> Sets { get; set; } //<"2,4,6,7", 78>
+        private List<Result> Sets { get; set; } //<"2,4,6,7", 78>
 
         /// <summary>
         /// The nodes that are used in the sets
@@ -49,6 +50,8 @@ namespace Problem_60
             PrimeNumbers = _primeNumbers.Numbers;
             NumberOfNodes = 3; //default
             Relations = new();
+            Nodes = new();
+            Sets = new();
         }
 
         /*
@@ -57,20 +60,19 @@ namespace Problem_60
          * Find the lowest sum for a set of five primes for which any two primes concatenate to produce another prime.
          */
 
-        public List<int> Solve()
+        public string Solve()
         {
-            List<int> result;
+            string result;
 
             // determine prime numbers that meet the terms
             foreach (var number in PrimeNumbers)
             {
                 if (AnalyzePrime(number))
                 {
-                    result = AnalyzeResult();
-                    if (result != null)
+                    if (AnalyzeResult())
                     {
                         // finished
-                        return result;
+                        //return result; //haal laagste som uit de lijst en return
                     }
                 }
             }
@@ -78,7 +80,7 @@ namespace Problem_60
             return null;
         }
 
-        private string AnalyzeResult()
+        private bool AnalyzeResult()
         {
             // there have to be at least 5 nodes with 4 incoming and 4 outgoing relations
             var fromCount = from r in Relations
@@ -100,53 +102,42 @@ namespace Problem_60
                                             t => t.To,
                                             (f, t) => f.From);
 
-                if (currentNodes.Count() == NumberOfNodes && Nodes == null)
+                
+                if (currentNodes.Count() >= NumberOfNodes)
                 {
                     // the minimum requirements are met so we can pick the nodes and create the relations
                     Nodes = new();
                     foreach (var node in currentNodes)
                     {
-                        Nodes.Add(node);
+                        if (!Nodes.Exists(n => n.Equals(node)))
+                        {
+                            Nodes.Add(node);
+                        }
                     }
                     if (CheckRelations())
                     {
                         // success!
-                        var maxSum = Sets.Values.Max();
-                        return
-
-                    }
-
-                }
-                else if (currentNodes.Count() > NumberOfNodes)
-                {
-                    // a new node is added so we can check the relation with the new node
-                    foreach (var node in currentNodes)
-                    {
-                        if (!Nodes.Exists(n => n.Equals(node)))
-                        {
-                            Nodes.Add(node);
-                            bool result = false;
-                            result = CheckRelations(node) || result; //this way result is true if one of the nodes is succesfull
-                            if (result)
-                            {
-                                //check wich one and return
-                            }
-                        }
+                        return true;
                     }
                 }
-
             }
-            return null;
+            return false;
         }
 
         /// <summary>
         /// Generate all combinations and check
         /// </summary>
-        /// <param name="_newNode">The newly added node, -1 if no node is added (initial check)</param>
         /// <returns>True on victory!</returns>
-        private bool CheckRelations(int _newNode = -1)
+        private bool CheckRelations()
         {
-            List<int> ResultSet = null;
+            // create all combinations
+            Combinations<int> combi = new Combinations<int>(Nodes, NumberOfNodes);
+            foreach (var c in combi)
+            {
+                Sets.Add(new Result() { Key = string.Join(";", c) });
+            }
+
+    /*        List<int> ResultSet = null;
             string setKey;
             int setSum = 0;
             bool ret = true;
@@ -179,8 +170,8 @@ namespace Problem_60
 
             }
 
-
-            return null;
+            */
+            return false;
         }
 
         /// <summary>
