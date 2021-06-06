@@ -1,8 +1,10 @@
 ﻿using Facet.Combinatorics;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace Problem_60
@@ -49,7 +51,15 @@ namespace Problem_60
         {
             PrimeNumbers = _primeNumbers.Numbers;
             NumberOfNodes = 3; //default
-            Relations = new();
+            if (File.Exists($"{Directory.GetCurrentDirectory()}\\Relations.json"))
+            {
+                string json = File.ReadAllText($"{Directory.GetCurrentDirectory()}\\Relations.json");
+                Relations = JsonSerializer.Deserialize<List<Relation>>(json);
+            }
+            else
+            { 
+              Relations = new();
+            }
             Nodes = new();
             Sets = new();
         }
@@ -62,22 +72,25 @@ namespace Problem_60
 
         public string Solve()
         {
-            string result;
-
             // determine prime numbers that meet the terms
-            foreach (var number in PrimeNumbers)
+            if (Relations.Count == 0)
             {
-                if (AnalyzePrime(number))
+                foreach (var number in PrimeNumbers)
                 {
-                    if (AnalyzeResult())
-                    {
-                        // finished
-                        //return result; //haal laagste som uit de lijst en return
-                    }
+                    AnalyzePrime(number);
                 }
+                string json = JsonSerializer.Serialize<List<Relation>>(Relations);
+                File.WriteAllText($"{Directory.GetCurrentDirectory()}\\Relations.json", json);
             }
 
-            return null;
+            AnalyzeResult();
+
+            var listSuccess = Sets.Where(r => r.Sum > 0).ToList();
+            string jsonSuccess = JsonSerializer.Serialize<List<Result>>(listSuccess);
+            File.WriteAllText($"{Directory.GetCurrentDirectory()}\\listSuccess.json", jsonSuccess);
+            var lowest = listSuccess.Min(s => s.Sum);
+
+            return listSuccess.Find(l => l.Sum.Equals(lowest)).Key;
         }
 
         private bool AnalyzeResult()
@@ -105,8 +118,8 @@ namespace Problem_60
                 
                 if (currentNodes.Count() >= NumberOfNodes)
                 {
+                    Console.WriteLine("Analyzing result...");
                     // the minimum requirements are met so we can pick the nodes and create the relations
-                    Nodes = new();
                     foreach (var node in currentNodes)
                     {
                         if (!Nodes.Exists(n => n.Equals(node)))
@@ -130,48 +143,48 @@ namespace Problem_60
         /// <returns>True on victory!</returns>
         private bool CheckRelations()
         {
+            bool ret = false;
             // create all combinations
             Combinations<int> combi = new Combinations<int>(Nodes, NumberOfNodes);
+
+
+
+            var count = combi.Count;
+            var i = 0;
             foreach (var c in combi)
             {
-                Sets.Add(new Result() { Key = string.Join(";", c) });
-            }
+                i++;
+                Console.WriteLine($"Checking relations..({i}/{count})");
 
-    /*        List<int> ResultSet = null;
-            string setKey;
-            int setSum = 0;
-            bool ret = true;
-
-            if (_newNode == -1)
-            {
-                setSum = 0;
-                // create initial group. This is exactly one set that meets the requirments
-                foreach (var sourceNode in Nodes)
+                var k = string.Join(";", c.OrderBy(i => i).ToList());
+                if (!Sets.Exists(n => n.Key.Equals(k)))
                 {
-                    setSum += sourceNode;
+                    var r = new Result() { Key = k };
+                    r.Success = true;
                     // each node has a relation with all other nodes. There are no one way relation so you only have to check From (or To)
-                    foreach (var targetNode in Nodes.Where(n => n!=sourceNode))
+                    foreach (var srcNode in c)
                     {
-                        if (!Relations.Exists(r => r.From.Equals(sourceNode) && r.To.Equals(targetNode)))
+                        foreach (var trgtNode in c)
                         {
-                            // no relation so fail
-                            ret = false;
+                            if (srcNode < trgtNode)
+                            {
+                                if (!Relations.Exists(r => r.From.Equals(srcNode) && r.To.Equals(trgtNode)))
+                                {
+                                    r.Success = false;
+                                    break;
+                                }
+                            }
                         }
+                        if (!r.Success)
+                            break;
                     }
-                }
-                if (ret)
-                {
-                    setKey = String.Join(";", Nodes);
-                    Sets.Add(setKey, setSum);
+                    r.Sum = r.Success ? c.Sum() : 0;
+                    Sets.Add(r);
+                    ret = ret || r.Success;
                 }
             }
-            else
-            {
 
-            }
-
-            */
-            return false;
+            return ret;
         }
 
         /// <summary>
@@ -181,6 +194,7 @@ namespace Problem_60
         /// <returns>True if a relation is added</returns>
         private bool AnalyzePrime(int _prime)
         {
+            Console.WriteLine($"Analyzing prime {_prime}");
             int factor = 10;
             int primeLeft = _prime / factor;
             int primeRight = _prime % factor;
@@ -196,12 +210,12 @@ namespace Problem_60
                     if (PrimeNumbers.Exists(p => p.Equals(newPrime)))
                     {
                         // add to relations if not exists
-                        if (!(Relations.Exists(r => r.From.Equals(primeLeft)) && Relations.Exists(r => r.To.Equals(primeRight))))
+                        if (!(Relations.Exists(r => r.From.Equals(primeLeft) && r.To.Equals(primeRight))))
                         {
                             Relations.Add(new Relation() { From = primeLeft, To = primeRight });
                             retVal = true;
                         }
-                        if (!(Relations.Exists(r => r.From.Equals(primeRight)) && Relations.Exists(r => r.To.Equals(primeLeft))))
+                        if (!(Relations.Exists(r => r.From.Equals(primeRight) && r.To.Equals(primeLeft))))
                         {
                             Relations.Add(new Relation() { From = primeRight, To = primeLeft });
                             retVal = true;
