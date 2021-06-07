@@ -15,21 +15,25 @@ namespace Problem_60
         /// The number of nodes to solve the problem for
         /// </summary>
         public int NumberOfNodes { get; set; }
+        /// <summary>
+        /// The  maximum prime number to use (for performance, increase if nu result found)
+        /// </summary>
+        public int MaxPrime { get; set; }
 
         /// <summary>
-        /// The number of relations required between the numbrs to find the solution
+        /// The number of relations required between the numbers to find the solution
         /// </summary>
         private int NumberOfRelations {
             get { return NumberOfNodes - 1; }
         }
 
         /// <summary>
-        /// Contains the list of prime numbers to analyze
+        /// Contains the list of prime numbers for analyzing
         /// </summary>
         public List<int> PrimeNumbers { get; private set; }
 
         /// <summary>
-        /// List representing the relations between primes that meet the criteria
+        /// List representing the relations between primes that meet the criteria (concat in each order leads to prime number)
         /// </summary>
         private List<Relation> Relations { get; set; }
 
@@ -46,12 +50,13 @@ namespace Problem_60
         /// <summary>
         /// Constructor
         /// </summary>
-        /// <param name="_primeNumbers"></param>
-        public Problem60Solver(PrimeNumbers _primeNumbers)
+        /// <param name="_primeNumbers">The helper list with primes to use</param>
+        /// <param name="_reset">On true, don't get cache files from disc</param>
+        public Problem60Solver(PrimeNumbers _primeNumbers, bool _reset = false)
         {
             PrimeNumbers = _primeNumbers.Numbers;
             NumberOfNodes = 3; //default
-            if (File.Exists($"{Directory.GetCurrentDirectory()}\\Relations.json"))
+            if (File.Exists($"{Directory.GetCurrentDirectory()}\\Relations.json") && !_reset)
             {
                 string json = File.ReadAllText($"{Directory.GetCurrentDirectory()}\\Relations.json");
                 Relations = JsonSerializer.Deserialize<List<Relation>>(json);
@@ -83,19 +88,20 @@ namespace Problem_60
                 File.WriteAllText($"{Directory.GetCurrentDirectory()}\\Relations.json", json);
             }
 
+            // Analyze the numbers
             AnalyzeResult();
 
-            var listSuccess = Sets.Where(r => r.Sum > 0).ToList();
-            string jsonSuccess = JsonSerializer.Serialize<List<Result>>(listSuccess);
-            File.WriteAllText($"{Directory.GetCurrentDirectory()}\\listSuccess.json", jsonSuccess);
-            var lowest = listSuccess.Min(s => s.Sum);
-
-            return listSuccess.Find(l => l.Sum.Equals(lowest)).Key;
+            // Return the result
+            return Sets.Find(l => l.Success).Key;
         }
 
+        /// <summary>
+        /// Analyze the found prime numbers and relations and look for the group of primes that meet the terms
+        /// </summary>
+        /// <returns>True when the group with the lowest sum is found</returns>
         private bool AnalyzeResult()
         {
-            // there have to be at least 5 nodes with 4 incoming and 4 outgoing relations
+            // there have to be at least NumberOfNodes nodes with NumberOfRelations incoming and NumberOfRelations outgoing relations
             var fromCount = from r in Relations
                        group r.From by r.From into c
                        where c.Count() >= NumberOfRelations
@@ -122,7 +128,7 @@ namespace Problem_60
                     // the minimum requirements are met so we can pick the nodes and create the relations
                     foreach (var node in currentNodes)
                     {
-                        if (!Nodes.Exists(n => n.Equals(node)))
+                        if (!Nodes.Exists(n => n.Equals(node)) && node <= MaxPrime) // add a max prime to reduce calculating time
                         {
                             Nodes.Add(node);
                         }
@@ -147,44 +153,64 @@ namespace Problem_60
             // create all combinations
             Combinations<int> combi = new Combinations<int>(Nodes, NumberOfNodes);
 
-
-
-            var count = combi.Count;
+            // initialize
+            
+            // calculate sum per combi to start solving from lowest to highest
+            var cnt = combi.Count;
             var i = 0;
             foreach (var c in combi)
             {
                 i++;
-                Console.WriteLine($"Checking relations..({i}/{count})");
-
-                var k = string.Join(";", c.OrderBy(i => i).ToList());
-                if (!Sets.Exists(n => n.Key.Equals(k)))
+                if (i % 1000 == 0)
                 {
-                    var r = new Result() { Key = k };
-                    r.Success = true;
-                    // each node has a relation with all other nodes. There are no one way relation so you only have to check From (or To)
-                    foreach (var srcNode in c)
-                    {
-                        foreach (var trgtNode in c)
-                        {
-                            if (srcNode < trgtNode)
-                            {
-                                if (!Relations.Exists(r => r.From.Equals(srcNode) && r.To.Equals(trgtNode)))
-                                {
-                                    r.Success = false;
-                                    break;
-                                }
-                            }
-                        }
-                        if (!r.Success)
-                            break;
-                    }
-                    r.Sum = r.Success ? c.Sum() : 0;
-                    Sets.Add(r);
-                    ret = ret || r.Success;
+                    Console.WriteLine($"Calculate sums {i}/{cnt}");
                 }
+                var k = string.Join(";", c.OrderBy(i => i).ToList());
+                var r = new Result() { Key = k, Success = false, Sum = c.Sum() };
+                Sets.Add(r);
             }
 
-            return ret;
+            foreach (var r in Sets.OrderBy(s => s.Sum))
+            {
+                List<int> values = r.Key.Split(";").Select(Int32.Parse).ToList();
+                r.Success = true;
+                foreach (var srcNode in values)
+                {
+                    foreach (var trgtNode in values)
+                    {
+                        if (srcNode < trgtNode)
+                        {
+                            if (!Relations.Exists(r => r.From.Equals(srcNode) && r.To.Equals(trgtNode)))
+                            {
+                                r.Success = false;
+                                break;
+                            }
+                        }
+                    }
+                    if (!r.Success)
+                        break;
+                }
+                if (r.Success)
+                    return true;
+            }
+
+   
+            return false;
+        }
+
+
+        private void CalculateSum(List<List<int>> _part, int _partNumber)
+        {
+            List<Result> localSet = new List<Result>();
+            // calculate sum
+            foreach (var c in _part)
+            {
+                var k = string.Join(";", c.OrderBy(i => i).ToList());
+                var r = new Result() { Key = k, Success = false, Sum = c.Sum() };
+                localSet.Add(r);
+            }
+            // store file
+            File.WriteAllText($"{Directory.GetCurrentDirectory()}\\Sums_{_partNumber}.json", JsonSerializer.Serialize<List<Result>>(localSet));
         }
 
         /// <summary>
@@ -206,8 +232,9 @@ namespace Problem_60
                 if (primeLeft != primeRight && PrimeNumbers.Exists(p => p.Equals(primeLeft)) && PrimeNumbers.Exists(p => p.Equals(primeRight)))
                 {
                     // are they primes in different order?
+                    int checkPrime = Int32.Parse($"{primeLeft}{primeRight}"); //check for ones like 3019, with a zero
                     int newPrime = Int32.Parse($"{primeRight}{primeLeft}");
-                    if (PrimeNumbers.Exists(p => p.Equals(newPrime)))
+                    if (checkPrime.Equals(_prime) && PrimeNumbers.Exists(p => p.Equals(newPrime)))
                     {
                         // add to relations if not exists
                         if (!(Relations.Exists(r => r.From.Equals(primeLeft) && r.To.Equals(primeRight))))
