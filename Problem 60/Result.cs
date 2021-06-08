@@ -13,16 +13,16 @@ namespace Problem_60
     class Result
     {
         /// <summary>
-        /// The result meets the criteria 
+        /// The result meets the criteria l = lucky you, success! 
         /// </summary>
-        public bool Success { get; set; }
+        public bool l { get; set; }
         /// <summary>
-        /// The key of the set
+        /// The key of the set k = key
         /// </summary>
-        public string Key { get; set; }
+        public string k { get; set; }
         /// <summary>
-        /// The sum of the set
+        /// The sum of the set s = Sum
         /// </summary>
-        public int Sum { get; set; }
+        public int s { get; set; }
     }
 }
