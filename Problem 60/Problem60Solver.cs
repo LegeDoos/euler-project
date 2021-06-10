@@ -60,7 +60,7 @@ namespace Problem_60
         /// <summary>
         /// Size of the list met items before relation calculation
         /// </summary>
-        int sumsize = 2000000;
+        int sumsize = 5000000;
         /// <summary>
         /// Number of items in the list per file
         /// </summary>
@@ -91,7 +91,7 @@ namespace Problem_60
          * Find the lowest sum for a set of five primes for which any two primes concatenate to produce another prime.
          */
 
-        public string Solve()
+        public void Solve()
         {
             // determine prime numbers that meet the terms
             if (File.Exists($"{Directory.GetCurrentDirectory()}\\Relations.json") && !ResetRelations)
@@ -116,21 +116,20 @@ namespace Problem_60
             CreateRelations();
 
             // Get ordered list of relations (first 1000000)
-            Sets = GetTopSum();
-
-            //Console.WriteLine($"TOP: {Sets.FirstOrDefault(i => i.k.Equals("3;7;109;673")).k}");
-
+            // not effective: Sets = GetTopSum();
             // store for debug
-            File.WriteAllText($"{Directory.GetCurrentDirectory()}\\TopSum.json", JsonSerializer.Serialize<List<Result>>(Sets));
+            // File.WriteAllText($"{Directory.GetCurrentDirectory()}\\TopSum.json", JsonSerializer.Serialize<List<Result>>(Sets));
 
-            if (CheckRelations())
+            CheckRelations();
+
+            // Check result
+            foreach (var set in Sets.OrderBy(s => s.s))
             {
-                // success!
-                return Sets.Find(l => l.l).k;
+                Console.WriteLine($"Found: {set.k}");
             }
+            Console.WriteLine("End of script");
+            Console.ReadKey();
 
-            // Return the result
-            return "No result :(";
         }
 
 
@@ -152,12 +151,12 @@ namespace Problem_60
 
                 //calculate sum per combi to start solving from lowest to highest
                 var splits = combi.Split(filesize);
-                int count = (combi.Count() / filesize) + 1;
+               // int count = (combi.Count() / filesize) + 1;
                 int part = 1;
 
                 foreach (var split in splits)
                 {
-                    Console.WriteLine($"Calculate sums for part {part}/{count}");
+                    Console.WriteLine($"Calculate sums for part {part}");
                     CalculateAndStoreSum(split, part);
                     part++;
                 }
@@ -207,43 +206,60 @@ namespace Problem_60
         }
 
         /// <summary>
-        /// Generate all combinations and check
+        /// Check all relations for a file
         /// </summary>
-        /// <returns>True on victory!</returns>
-        private bool CheckRelations()
+        private void CheckRelations()
         {
             Console.WriteLine("Check relations");
-            int cnt = Sets.Count();
-            int current = 0;
-            foreach (var r in Sets.OrderBy(s => s.s))
+
+            foreach (var file in Directory.GetFiles(Directory.GetCurrentDirectory(), "Sums*.json"))
             {
-                current++;
-                if (current % 10000 == 0)
+
+                Console.Clear();
+                Console.WriteLine("Check relations");
+                Console.WriteLine($"Calculate relations from file {file}");
+
+                List<Result> currentList = JsonSerializer.Deserialize<List<Result>>(File.ReadAllText(file));
+
+                int cnt = currentList.Count();
+                int current = 0;
+                foreach (var node in currentList)
                 {
-                    Console.WriteLine($"Relation: {current}/{cnt}");
-                }
-                List<int> values = r.k.Split(";").Select(Int32.Parse).ToList();
-                r.l = true;
-                foreach (var srcNode in values)
-                {
-                    foreach (var trgtNode in values)
+                    current++;
+                    if (current % 10000 == 0)
                     {
-                        if (srcNode < trgtNode)
+                        var percent = current * 100.0 / cnt;
+                        Console.Write($"\rProgress: {percent}% {"x".PadRight(current*100/cnt, 'x')}{"_".PadLeft(100 - (current * 100 / cnt), '_')}");
+                    }
+                    List<int> values = node.k.Split(";").Select(Int32.Parse).ToList();
+                    node.l = true;
+                    foreach (var srcNode in values)
+                    {
+                        foreach (var trgtNode in values)
                         {
-                            if (!Relations.Exists(r => r.From.Equals(srcNode) && r.To.Equals(trgtNode)))
+                            if (srcNode < trgtNode)
                             {
-                                r.l = false;
-                                break;
+                                if (!Relations.Exists(r => r.From.Equals(srcNode) && r.To.Equals(trgtNode)))
+                                {
+                                    node.l = false;
+                                    break;
+                                }
                             }
                         }
+                        if (!node.l)
+                            break;
                     }
-                    if (!r.l)
-                        break;
+                    if (node.l)
+                    {
+                        // found one!
+                        Sets.Add(node);
+                    }
                 }
-                if (r.l)
-                    return true;
+
+                // store
+                File.WriteAllText($"{file}", JsonSerializer.Serialize<List<Result>>(currentList));
             }
-            return false;
+
         }
 
         /// <summary>
@@ -284,17 +300,6 @@ namespace Problem_60
                 if (localList.Count > sumsize)
                     localList.RemoveRange(sumsize, localList.Count - sumsize);
 
-
-                var o = localList.FirstOrDefault(i => i.k.Equals("3;7;109;673"));
-                if (o != null)
-                {
-                    var pos = localList.IndexOf(o);
-                    Console.WriteLine($"locallist count {localList.Count()} Position: {pos}; ");
-                }
-                else
-                {
-                    Console.WriteLine("Item not found!");
-                }
                 Console.WriteLine($"Last sum in the list: {localList.Last().s}");
             }
 
