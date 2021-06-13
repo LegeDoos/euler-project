@@ -72,7 +72,7 @@ namespace Facet.Combinatorics {
         /// If the result is not a integer, then the result is undefined.  That is, 11 / 5
         /// when divided by this function will not yield a correct result.
         /// As such, this function is ONLY useful for division with combinatorial results where 
-        /// the result is known to be an integer AND the division occurs as the last operation(s).
+        /// the result is known to be an integer AND the division occurs as the last operation(S).
         /// </summary>
         /// <param name="numerator">Numerator argument, expressed as list of prime factors.</param>
         /// <param name="denominator">Denominator argument, expressed as list of prime factors.</param>
@@ -110,7 +110,7 @@ namespace Facet.Combinatorics {
 
         /// <summary>
         /// Calculate all primes up to Sqrt(2^32) = 2^16.  
-        /// This table will be large enough for all factorizations for Int32's.
+        /// This table will be large enough for all factorizations for Int32'S.
         /// Small tables are best built using the Sieve Of Eratosthenes,
         /// Reference: http://primes.utm.edu/glossary/page.php?sort=SieveOfEratosthenes
         /// </summary>

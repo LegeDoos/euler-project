@@ -58,13 +58,10 @@ namespace Problem_60
         private bool ResetSums { get; set; }
 
         /// <summary>
-        /// Size of the list met items before relation calculation
-        /// </summary>
-        int sumsize = 5000000;
-        /// <summary>
         /// Number of items in the list per file
         /// </summary>
-        int filesize = 1000000;
+        readonly int filesize = 200000;
+
         /// <summary>
         /// Constructor
         /// </summary>
@@ -112,31 +109,26 @@ namespace Problem_60
             // Analyze the numbers and create the nodes that are relevant
             CreateNodes();
 
-            // Generate relations and check
-            CreateRelations();
+            // Generate combinations
+            CreateCombinations();
 
-            // Get ordered list of relations (first 1000000)
-            // not effective: Sets = GetTopSum();
-            // store for debug
-            // File.WriteAllText($"{Directory.GetCurrentDirectory()}\\TopSum.json", JsonSerializer.Serialize<List<Result>>(Sets));
-
+            // Check for relations that  meet the terms
             CheckRelations();
 
             // Check result
-            foreach (var set in Sets.OrderBy(s => s.s))
+            foreach (var set in Sets.OrderBy(s => s.S))
             {
-                Console.WriteLine($"Found: {set.k}");
+                Console.WriteLine($"Found: {set.K}");
             }
             Console.WriteLine("End of script");
             Console.ReadKey();
-
         }
 
 
         /// <summary>
         /// Create all combinations of nodes and split in files of 1000000 relations
         /// </summary>
-        private void CreateRelations()
+        private void CreateCombinations()
         {
             if (ResetSums)
             {
@@ -147,7 +139,7 @@ namespace Problem_60
                 }
 
                 // recreate the combinations and files
-                Combinations<int> combi = new Combinations<int>(Nodes, NumberOfNodes);
+                Combinations<int> combi = new(Nodes, NumberOfNodes);
 
                 //calculate sum per combi to start solving from lowest to highest
                 var splits = combi.Split(filesize);
@@ -219,11 +211,15 @@ namespace Problem_60
                 Console.WriteLine("Check relations");
                 Console.WriteLine($"Calculate relations from file {file}");
 
-                List<Result> currentList = JsonSerializer.Deserialize<List<Result>>(File.ReadAllText(file));
+                ResultChunk chunk = JsonSerializer.Deserialize<ResultChunk>(File.ReadAllText(file));
+                
+                if (chunk.Status != ChunkStatus.New)
+                    return;
 
-                int cnt = currentList.Count();
+                chunk.Status = ChunkStatus.ProcessedAndNotFound;
+                int cnt = chunk.Combinations.Count;
                 int current = 0;
-                foreach (var node in currentList)
+                foreach (var node in chunk.Combinations)
                 {
                     current++;
                     if (current % 10000 == 0)
@@ -231,8 +227,8 @@ namespace Problem_60
                         var percent = current * 100.0 / cnt;
                         Console.Write($"\rProgress: {percent}% {"x".PadRight(current*100/cnt, 'x')}{"_".PadLeft(100 - (current * 100 / cnt), '_')}");
                     }
-                    List<int> values = node.k.Split(";").Select(Int32.Parse).ToList();
-                    node.l = true;
+                    List<int> values = node.K.Split(";").Select(Int32.Parse).ToList();
+                    node.S = 0;
                     foreach (var srcNode in values)
                     {
                         foreach (var trgtNode in values)
@@ -241,23 +237,26 @@ namespace Problem_60
                             {
                                 if (!Relations.Exists(r => r.From.Equals(srcNode) && r.To.Equals(trgtNode)))
                                 {
-                                    node.l = false;
+                                    node.S = -1;
                                     break;
                                 }
                             }
                         }
-                        if (!node.l)
+                        if (node.S == -1)
                             break;
                     }
-                    if (node.l)
+                    if (node.S == 0)
                     {
                         // found one!
                         Sets.Add(node);
+
+                        node.S = values.Sum();
+                        chunk.Status = ChunkStatus.ProcessedAndFound;
                     }
                 }
 
                 // store
-                File.WriteAllText($"{file}", JsonSerializer.Serialize<List<Result>>(currentList));
+                File.WriteAllText($"{file}", JsonSerializer.Serialize<ResultChunk>(chunk));
             }
 
         }
@@ -267,47 +266,25 @@ namespace Problem_60
         /// </summary>
         /// <param name="_part">The part containing combinations</param>
         /// <param name="_partNumber">The partnumber you are processing</param>
-        private void CalculateAndStoreSum(IEnumerable<IEnumerable<int>> _part, int _partNumber)
+        static private void CalculateAndStoreSum(IEnumerable<IEnumerable<int>> _part, int _partNumber)
         {
-            List<Result> localSet = new List<Result>();
+            ResultChunk chunck = new();
+
+            //List<Result> localSet = new List<Result>();
             // calculate sum
             foreach (var c in _part)
             {
                 var k = string.Join(";", c.OrderBy(i => i).ToList());
-                var r = new Result() { k = k, l = false, s = c.Sum() };
-                localSet.Add(r);
+                var r = new Result() { K = k };
+                chunck.Combinations.Add(r);
             }
             // store file
-            File.WriteAllText($"{Directory.GetCurrentDirectory()}\\Sums_{_partNumber.ToString().PadLeft(10, '0')}.json", JsonSerializer.Serialize<List<Result>>(localSet));
+            File.WriteAllText($"{Directory.GetCurrentDirectory()}\\Sums_{_partNumber.ToString().PadLeft(10, '0')}.json", JsonSerializer.Serialize<ResultChunk>(chunck));
         }
 
-        /// <summary>
-        /// Iterate all files and get the top x items
-        /// </summary>
-        /// <returns>The top x items of all the files</returns>
-        private List<Result> GetTopSum()
-        {
-            List<Result> localList = new List<Result>();
-
-            foreach (var file in Directory.GetFiles(Directory.GetCurrentDirectory(), "Sums*.json"))
-            {
-                Console.WriteLine($"Get sums from file {file}");
-                List<Result> currentList = JsonSerializer.Deserialize<List<Result>>(File.ReadAllText(file));
-                localList.AddRange(currentList);
-
-                localList = localList.OrderBy(item => item.s).ToList();
-
-                if (localList.Count > sumsize)
-                    localList.RemoveRange(sumsize, localList.Count - sumsize);
-
-                Console.WriteLine($"Last sum in the list: {localList.Last().s}");
-            }
-
-            return localList;
-        }
 
         /// <summary>
-        /// Analyze a single prime number and add to the relations if it's a "special one"
+        /// Analyze a single prime number and add to the relations if it'S a "special one"
         /// </summary>
         /// <param name="_prime">The number to analyze</param>
         /// <returns>True if a relation is added</returns>

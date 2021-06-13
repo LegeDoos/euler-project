@@ -280,7 +280,7 @@ namespace Facet.Combinatorics {
         /// different based on whether the type is with or without repetition.
         /// 
         /// When the type is WithoutRepetition, then a map of upper index elements is
-        /// created with lower index false's.  
+        /// created with lower index false'S.  
         /// E.g. 8 choose 3 generates:
         /// Map: {1 1 1 1 1 0 0 0}
         /// Note: For sorting reasons, false denotes inclusion in output.

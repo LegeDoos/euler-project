@@ -13,9 +13,9 @@ namespace Problem_60
             PrimeNumbers primes = new();
             primes.CalculateTo = 1000000;
             primes.CalculatePrimeNumbers();
-            Problem60Solver solver = new(primes, false, false);
-            solver.NumberOfNodes = 5;
-            solver.MaxPrime = 2000;
+            Problem60Solver solver = new(primes, true, true);
+            solver.NumberOfNodes = 4;
+            solver.MaxPrime = 674;
             solver.Solve();
         }
     }
