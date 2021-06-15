@@ -1,12 +1,8 @@
-﻿using Facet.Combinatorics;
-using Problem_60.ExtensionMethods;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace Problem_60
 {
@@ -35,7 +31,7 @@ namespace Problem_60
         /// <summary>
         /// Contains the list of prime numbers for analyzing
         /// </summary>
-        private List<int> PrimeNumbers { get; set; }
+        private List<int> Primes { get; set; }
 
         /// <summary>
         /// The maximum prime number to use (for performance, increase if nu result found)
@@ -48,55 +44,32 @@ namespace Problem_60
         public HashSet<int> CurrentResult { get; set; }
 
         /// <summary>
-        /// List representing the relations between primes that meet the criteria (concat in each order leads to prime number)
-        /// </summary>
-        private List<Relation> Relations { get; set; }
-
-        /// <summary>
-        /// Sets of primes, represented by a string and the sum of that set (meets requirements or not)
-        /// </summary>
-        private List<Result> Sets { get; set; } //<"2,4,6,7", 78>
-
-        /// <summary>
-        /// The nodes that are used in the sets
-        /// </summary>
-        private List<int> Nodes { get; set; }
-
-        /// <summary>
-        /// Reset and recalculate the relations
-        /// </summary>
-        private bool ResetRelations { get; set; }
-        /// <summary>
-        /// Reset and recalculate the sums
-        /// </summary>
-        private bool ResetSums { get; set; }
-
-        /// <summary>
-        /// Number of items in the list per file
-        /// </summary>
-        readonly int filesize = 200000;
-
-        /// <summary>
         /// Constructor
         /// </summary>
         /// <param name="_primeNumbers">The helper list with primes to use</param>
         /// <param name="_resetRelations">On true, recalculate the relations from the primes</param>
-        /// <param name="_resetSums">On true, recalculate the sums files with the primes</param>
-        public Problem60Solver(PrimeNumbers _primeNumbers, bool _resetRelations = false, bool _resetSums = false)
+        public Problem60Solver()
         {
             RelationSets = new Dictionary<int, HashSet<int>>();
             MinSum = Int32.MaxValue;
 
-            PrimeNumbers = _primeNumbers.Numbers;
+            PrimeNumbers primeNumbers;
+            try
+            {
+                primeNumbers = PrimeNumbers.LoadFromFile($"{Directory.GetCurrentDirectory()}\\Primes.json");
+                Primes = primeNumbers.Numbers;
+            }
+            catch (Exception)
+            {
+                // error loading prime numbers so generate
+                primeNumbers = new();
+                primeNumbers.CalculateTo = 100000000;
+                primeNumbers.CalculatePrimeNumbers();
+                primeNumbers.WriteToDisk($"{Directory.GetCurrentDirectory()}");
+                Primes = primeNumbers.Numbers;
+            }
+        
             NumberOfNodes = 3; //default
-
-            Relations = new();
-            ResetRelations = _resetRelations;
-            ResetSums = _resetSums;
-
-            Nodes = new();
-            
-            Sets = new();
         }
 
         /*
@@ -107,7 +80,10 @@ namespace Problem_60
 
         public void Solve()
         {
-            if (File.Exists($"{Directory.GetCurrentDirectory()}\\RelationSets.json") && !ResetRelations)
+            Console.WriteLine("Generate relations");
+            int start = Environment.TickCount;
+
+            if (File.Exists($"{Directory.GetCurrentDirectory()}\\RelationSets.json"))
             {
                 string json = File.ReadAllText($"{Directory.GetCurrentDirectory()}\\RelationSets.json");
                 RelationSets = JsonSerializer.Deserialize<Dictionary<int, HashSet<int>>>(json);
@@ -115,46 +91,89 @@ namespace Problem_60
             else
             {
                 // Create all sets for all primes to maxprime
-                foreach (var primeNumber in PrimeNumbers)
+                int i = 0;
+                int cntHeader = Primes.IndexOf(Primes.First(p=>p>MaxPrime));
+                Console.Clear();
+
+                foreach (var leftPrime in Primes.Where(p => p<=MaxPrime))
                 {
-                    if (primeNumber < MaxPrime)
+                    i++;
+
+                    // determine relations
+                    int j = 0;
+                    int cntLines = Primes.Where(p => p > leftPrime && p <= MaxPrime).Count();
+                    foreach (var rightPrime in Primes.Where(p => p > leftPrime && p <= MaxPrime))
                     {
-                        HashSet<int> set = new HashSet<int>();
-                        set.Add(primeNumber);
-                        RelationSets.Add(primeNumber, set);
+                        j++;
+                        if (j % 10 == 0)
+                        {
+                            Console.Write($"\rAnalyzing primes: prime {i}/{cntHeader} {j}/{cntLines}");
+                        }
+                        try
+                        {
+                            var option1 = Int32.Parse($"{leftPrime}{rightPrime}");
+                            var option2 = Int32.Parse($"{rightPrime}{leftPrime}");
+                            if (Primes.Exists(p => p == option1) && Primes.Exists(p => p == option2))
+                            {
+                                // valid relation so add
+                                if (!RelationSets.ContainsKey(leftPrime))
+                                {
+                                    // create hashset
+                                    HashSet<int> set = new()
+                                    {
+                                        leftPrime
+                                    };
+                                    RelationSets.Add(leftPrime, set);
+                                }
+                                RelationSets[leftPrime].Add(rightPrime);
+                            }
+                        }
+                        catch (Exception)
+                        {
+                            // just skip, value is too large anyway
+                        }
                     }
                 }
 
-                // Add relations
-                foreach (var number in PrimeNumbers)
-                {
-                    AnalyzePrime(number);
-                }
                 string json = JsonSerializer.Serialize<Dictionary<int, HashSet<int>>>(RelationSets);
                 File.WriteAllText($"{Directory.GetCurrentDirectory()}\\RelationSets.json", json);
             }
 
+            Console.WriteLine($"Relations generated. Elapsed: {(Environment.TickCount - start)/1000} seconds");
+
             // Analyze data
+            Console.WriteLine("Analyze relations");
+            start = Environment.TickCount;
 
             // iterate all sets that have at least "NumberOfRelations" items
             foreach (var theSet in RelationSets.Where(s => s.Value.Count >= NumberOfRelations))
             {
-                var path = new HashSet<int>();
-                path.Add(theSet.Key); //add first key
+                var path = new HashSet<int>
+                {
+                    theSet.Key //add first key
+                };
 
                 foreach (var currentKey in theSet.Value)
                 {
                     // skip the first one
                     if (theSet.Key != currentKey)
                     {
-                        IntersectRecursively(theSet.Value, currentKey, 1, path);
+                        // only recurse when possible result doesn't exceed minsum
+                        if (theSet.Value.Sum() + (currentKey * (NumberOfNodes - 1)) <= MinSum)
+                        {
+                            IntersectRecursively(theSet.Value, currentKey, 1, path);
+                        }
                     }
                 }
             }
-            
-            // print result
-            Console.WriteLine($"Result with lowest sum: {string.Join(';', CurrentResult)} with sum {MinSum}" );
 
+            Console.WriteLine($"Relations analyzed. Elapsed: {(Environment.TickCount - start)/1000} seconds");
+
+            // print result
+            if (CurrentResult != null)
+            {
+                Console.WriteLine($"Result with lowest sum: {string.Join(';', CurrentResult)} with sum {MinSum}");
+            }
             Console.WriteLine("End of script");
             Console.ReadKey();
         }
@@ -167,9 +186,10 @@ namespace Problem_60
             int levelsToGo = NumberOfRelations - currentLevel;
 
             // create the current path
-            HashSet<int> path = new();
-            path = _path.ToHashSet();
+            HashSet<int> path = _path.ToHashSet();
             path.Add(_targetPrime);
+
+            //todo: check sum
 
             // get intersection:
             // intersection contains the relations thet needs to be examined that are left, except the already added noed to path
@@ -187,7 +207,7 @@ namespace Problem_60
                         if (node != _targetPrime)
                         {
                             // there is a result!
-                            Console.WriteLine($"Result found {string.Join(";", path)};{node}");
+                            Console.WriteLine($"\rResult found {string.Join(";", path)};{node}");
 
                             var sum = path.Sum() + node;
                             if (sum < MinSum)
@@ -221,212 +241,6 @@ namespace Problem_60
                     }
                 }
             }
-
-            //    if (currentLevel == NumberOfNodes && intersection.Count() >= levelsToGo)
-            //    {
-            //        // resultaat?
-            //        var sum = intersection.Sum();
-            //    }
-
-
-
-
-
-        }
-
-        /// <summary>
-        /// Create all combinations of nodes and split in files of 1000000 relations
-        /// </summary>
-        private void CreateCombinations()
-        {
-            if (ResetSums)
-            {
-                // delete the files
-                foreach (var file in Directory.GetFiles(Directory.GetCurrentDirectory(), "Sums*.json"))
-                {
-                    File.Delete(file);
-                }
-
-                // recreate the combinations and files
-                Combinations<int> combi = new(Nodes, NumberOfNodes);
-
-                //calculate sum per combi to start solving from lowest to highest
-                var splits = combi.Split(filesize);
-               // int count = (combi.Count() / filesize) + 1;
-                int part = 1;
-
-                foreach (var split in splits)
-                {
-                    Console.WriteLine($"Calculate sums for part {part}");
-                    CalculateAndStoreSum(split, part);
-                    part++;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Analyze the prime numbers and look for the prime numbers the terms
-        /// </summary>
-        /// <returns>True when the group with the lowest sum is found</returns>
-        private void CreateNodes()
-        {
-            // there have to be at least NumberOfNodes nodes with NumberOfRelations incoming and NumberOfRelations outgoing relations
-            var fromCount = from r in Relations
-                       group r.From by r.From into c
-                       where c.Count() >= NumberOfRelations
-                       select new { From = c.Key, Count = c.Count() };
-
-            var toCount = from r in Relations
-                            group r.To by r.To into c
-                            where c.Count() >= NumberOfRelations
-                            select new { To = c.Key, Count = c.Count() };
-
-            if (fromCount.Count() >= NumberOfNodes && toCount.Count() >= NumberOfNodes )
-            {
-                // check for the nodes, they have to be the same
-
-                var currentNodes = fromCount.Join(toCount,
-                                            f => f.From,
-                                            t => t.To,
-                                            (f, t) => f.From);
-
-                
-                if (currentNodes.Count() >= NumberOfNodes)
-                {
-                    Console.WriteLine("Creating nodes...");
-                    // the minimum requirements are met so we can pick the nodes and create the relations
-                    foreach (var node in currentNodes)
-                    {
-                        if (!Nodes.Exists(n => n.Equals(node)) && node <= MaxPrime) // add a max prime to reduce calculating time
-                        {
-                            Nodes.Add(node);
-                        }
-                    }
-                }
-            }
-        }
-
-        /// <summary>
-        /// Check all relations for a file
-        /// </summary>
-        private void CheckRelations()
-        {
-            Console.WriteLine("Check relations");
-
-            foreach (var file in Directory.GetFiles(Directory.GetCurrentDirectory(), "Sums*.json"))
-            {
-
-                Console.Clear();
-                Console.WriteLine("Check relations");
-                Console.WriteLine($"Calculate relations from file {file}");
-
-                ResultChunk chunk = JsonSerializer.Deserialize<ResultChunk>(File.ReadAllText(file));
-                
-                if (chunk.Status != ChunkStatus.New)
-                    return;
-
-                chunk.Status = ChunkStatus.ProcessedAndNotFound;
-                int cnt = chunk.Combinations.Count;
-                int current = 0;
-                foreach (var node in chunk.Combinations)
-                {
-                    current++;
-                    if (current % 10000 == 0)
-                    {
-                        var percent = current * 100.0 / cnt;
-                        Console.Write($"\rProgress: {percent}% {"x".PadRight(current*100/cnt, 'x')}{"_".PadLeft(100 - (current * 100 / cnt), '_')}");
-                    }
-                    List<int> values = node.K.Split(";").Select(Int32.Parse).ToList();
-                    node.S = 0;
-                    foreach (var srcNode in values)
-                    {
-                        foreach (var trgtNode in values)
-                        {
-                            if (srcNode < trgtNode)
-                            {
-                                if (!Relations.Exists(r => r.From.Equals(srcNode) && r.To.Equals(trgtNode)))
-                                {
-                                    node.S = -1;
-                                    break;
-                                }
-                            }
-                        }
-                        if (node.S == -1)
-                            break;
-                    }
-                    if (node.S == 0)
-                    {
-                        // found one!
-                        Sets.Add(node);
-
-                        node.S = values.Sum();
-                        chunk.Status = ChunkStatus.ProcessedAndFound;
-                    }
-                }
-
-                // store
-                File.WriteAllText($"{file}", JsonSerializer.Serialize<ResultChunk>(chunk));
-            }
-
-        }
-
-        /// <summary>
-        /// Calculate the sums of a part and store to disk
-        /// </summary>
-        /// <param name="_part">The part containing combinations</param>
-        /// <param name="_partNumber">The partnumber you are processing</param>
-        static private void CalculateAndStoreSum(IEnumerable<IEnumerable<int>> _part, int _partNumber)
-        {
-            ResultChunk chunck = new();
-
-            //List<Result> localSet = new List<Result>();
-            // calculate sum
-            foreach (var c in _part)
-            {
-                var k = string.Join(";", c.OrderBy(i => i).ToList());
-                var r = new Result() { K = k };
-                chunck.Combinations.Add(r);
-            }
-            // store file
-            File.WriteAllText($"{Directory.GetCurrentDirectory()}\\Sums_{_partNumber.ToString().PadLeft(10, '0')}.json", JsonSerializer.Serialize<ResultChunk>(chunck));
-        }
-
-
-        /// <summary>
-        /// Analyze a single prime number and add to the relations if it'S a "special one"
-        /// </summary>
-        /// <param name="_prime">The number to analyze</param>
-        /// <returns>True if a relation is added</returns>
-        private bool AnalyzePrime(int _prime)
-        {
-            Console.WriteLine($"Analyzing prime {_prime}");
-            int factor = 10;
-            int primeLeft = _prime / factor;
-            int primeRight = _prime % factor;
-            bool retVal = false;
-
-            while (primeLeft > 0)
-            {
-                // are both different primes?
-                if (primeLeft != primeRight && PrimeNumbers.Exists(p => p.Equals(primeLeft)) && PrimeNumbers.Exists(p => p.Equals(primeRight)))
-                {
-                    // are they primes in different order?
-                    int checkPrime = Int32.Parse($"{primeLeft}{primeRight}"); //check for ones like 3019, with a zero
-                    int newPrime = Int32.Parse($"{primeRight}{primeLeft}");
-                    if (checkPrime.Equals(_prime) && PrimeNumbers.Exists(p => p.Equals(newPrime)))
-                    {
-                        // add to relations if not exists
-                        if (primeRight < MaxPrime && primeLeft < MaxPrime)
-                        {
-                            RelationSets[Math.Min(primeLeft, primeRight)].Add(Math.Max(primeLeft, primeRight));
-                        }
-                    }
-                }
-                factor *= 10;
-                primeLeft = _prime / factor;
-                primeRight = _prime % factor;
-            }
-            return retVal;
         }
     }
 }

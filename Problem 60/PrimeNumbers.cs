@@ -101,7 +101,7 @@ namespace Problem_60
             try
             {
                 string json = JsonSerializer.Serialize(this);
-                File.WriteAllText($"{_path}\\PrimeNumbers.json", json);
+                File.WriteAllText($"{_path}\\Primes.json", json);
                 return true;
             }
             catch (Exception)

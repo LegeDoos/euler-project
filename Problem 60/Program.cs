@@ -1,7 +1,5 @@
-﻿using Facet.Combinatorics;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.IO;
 
 namespace Problem_60
 {
@@ -9,13 +7,9 @@ namespace Problem_60
     {
         static void Main()
         {
-            Console.WriteLine("Start");
-            PrimeNumbers primes = new();
-            primes.CalculateTo = 700000;
-            primes.CalculatePrimeNumbers();
-            Problem60Solver solver = new(primes, false, false);
+            Problem60Solver solver = new();
             solver.NumberOfNodes = 4;
-            solver.MaxPrime = 674;
+            solver.MaxPrime = 20000; // try not to get over int32 range
             solver.Solve();
         }
     }
