@@ -98,6 +98,19 @@ namespace Problem_60
                 foreach (var leftPrime in Primes.Where(p => p<=MaxPrime))
                 {
                     i++;
+                    
+                    // skip 2 and 5
+                    if (leftPrime == 2 || leftPrime == 5)
+                    {
+                        continue;
+                    }    
+
+                    // create hashset
+                    HashSet<int> set = new()
+                    {
+                        leftPrime
+                    };
+                    RelationSets.Add(leftPrime, set);
 
                     // determine relations
                     int j = 0;
@@ -116,15 +129,6 @@ namespace Problem_60
                             if (Primes.Exists(p => p == option1) && Primes.Exists(p => p == option2))
                             {
                                 // valid relation so add
-                                if (!RelationSets.ContainsKey(leftPrime))
-                                {
-                                    // create hashset
-                                    HashSet<int> set = new()
-                                    {
-                                        leftPrime
-                                    };
-                                    RelationSets.Add(leftPrime, set);
-                                }
                                 RelationSets[leftPrime].Add(rightPrime);
                             }
                         }
