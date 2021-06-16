@@ -189,10 +189,13 @@ namespace Problem_60
             HashSet<int> path = _path.ToHashSet();
             path.Add(_targetPrime);
 
-            //todo: check sum
-
             // get intersection:
             // intersection contains the relations thet needs to be examined that are left, except the already added noed to path
+            if (!RelationSets.ContainsKey(_targetPrime))
+            {
+                return;
+            }
+
             var intersection = _sourceSet.Intersect(RelationSets[_targetPrime]);
 
             // process the last item

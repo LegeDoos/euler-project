@@ -8,7 +8,7 @@ namespace Problem_60
         static void Main()
         {
             Problem60Solver solver = new();
-            solver.NumberOfNodes = 4;
+            solver.NumberOfNodes = 5;
             solver.MaxPrime = 20000; // try not to get over int32 range
             solver.Solve();
         }
