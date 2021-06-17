@@ -49,13 +49,10 @@ namespace Problem_4
             {
                 for (int j = maxNumber; j > 0; j--)
                 {
-                    if (IsPalendromic(i * j))
+                    if (i * j > PalindromicProductResult && IsPalendromic(i * j))
                     {
-                        if (i * j > PalindromicProductResult)
-                        {
-                            PalindromicProductResult = i * j;
-                            Numbersresult = new HashSet<int>() { i, j };
-                        }
+                        PalindromicProductResult = i * j;
+                        Numbersresult = new HashSet<int>() { i, j };
                     }
                 }
             }
