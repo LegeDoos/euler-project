@@ -12,7 +12,7 @@ namespace Problem_4
                 Find the largest palindrome made from the product of two 3 - digit numbers.
             */
             PalendromicNumbers palendromicNumbers = new();
-            palendromicNumbers.NumberOfDigits = 4;
+            palendromicNumbers.NumberOfDigits = 3;
             palendromicNumbers.FindNumbers();
             
             Console.WriteLine($"Result for {palendromicNumbers.NumberOfDigits} digit(s) is {string.Join(",", palendromicNumbers.Numbersresult)} with largest palindrome {palendromicNumbers.PalindromicProductResult}");
