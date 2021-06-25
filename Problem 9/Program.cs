@@ -4,7 +4,7 @@ namespace Problem_9
 {
     class Program
     {
-        static void Main(string[] args)
+        static void Main()
         {
             Console.WriteLine("Problem 9");
             int a = 1;
