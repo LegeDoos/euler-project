@@ -9,6 +9,7 @@ namespace Problem_12
         static void Main(string[] args)
         {
             Console.WriteLine("Problem 12");
+            var start = Environment.TickCount;
             int i = 0;
             int currentSum = 0;
             int minDivisors = 500;
@@ -26,7 +27,7 @@ namespace Problem_12
                 }
             } while (result.Count <= minDivisors);
 
-            Console.WriteLine($"Result: trianglenumber {i} with value {currentSum}: {string.Join(";", result)}");
+            Console.WriteLine($"Result: trianglenumber {i} with value {currentSum}: {string.Join(";", result)} (found in {Environment.TickCount - start} ms)");
            
 
         }
