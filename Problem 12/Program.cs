@@ -11,19 +11,23 @@ namespace Problem_12
             Console.WriteLine("Problem 12");
             int i = 0;
             int currentSum = 0;
-            int minDivisors = 10;
-            NumberCalculations calc = new();
-            HashSet<int> test;
+            int minDivisors = 500;
+            int currentMaxDivisors = 0;
+            HashSet<int> result;
             do
             {
                 i++;
                 currentSum += i;
-                test = calc.FactorsFast(currentSum);
-                Console.WriteLine($"Current trianglenumber: {currentSum}; Current divisors: {String.Join(";", test)}");
+                result = NumberCalculations.GetAllFactors(currentSum);
+                if (result.Count > currentMaxDivisors)
+                {
+                    currentMaxDivisors = result.Count;
+                    Console.WriteLine($"Current trianglenumber with max divisors: {i} with sum {currentSum}; Current divisors: {currentMaxDivisors}");
+                }
+            } while (result.Count <= minDivisors);
 
-            } while (test.Count <= minDivisors);
-
-            Console.WriteLine($"trianglenumber {currentSum}: {string.Join(";", calc.FactorsFast(currentSum))}");
+            Console.WriteLine($"Result: trianglenumber {i} with value {currentSum}: {string.Join(";", result)}");
+           
 
         }
     }
