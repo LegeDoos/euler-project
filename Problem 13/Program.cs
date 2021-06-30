@@ -8,6 +8,7 @@ namespace Problem_13
         static void Main()
         {
             Console.WriteLine("Problem 13");
+            int start = Environment.TickCount;
             List<char[]> numbers = new()
             {
                 "37107287533902102798797998220837590246510135740250".ToCharArray(),
@@ -111,6 +112,28 @@ namespace Problem_13
                 "20849603980134001723930671666823555245252804609722".ToCharArray(),
                 "53503534226472524250874054075591789781264330331690".ToCharArray()
             };
+            List<string> resultNumber = new();
+
+            double sum = 0;
+            // walk throug all digits...
+            for (int i = 50; i > 0; i--)
+            {
+                // from every number
+                foreach (var number in numbers)
+                {
+                    // and summarize
+                    sum += char.GetNumericValue(number[i - 1]);
+                }
+                // split number
+                string num = sum.ToString();
+                string left = num.Substring(0, num.Length - 1);
+                string right = num.Substring(num.Length - 1, 1);
+                resultNumber.Add(right);
+                sum = double.Parse(left); // add remainder to next iteration
+            }
+            // add result sum to end string
+            resultNumber.Reverse();
+            Console.WriteLine($"Result: {sum}{string.Join("", resultNumber)} in {Environment.TickCount - start} ms");
         }
     }
 }
