@@ -10,15 +10,9 @@ namespace Problem_15
             Console.WriteLine("Problem 15");
             int start = Environment.TickCount;
 
-            LatticePaths paths = new(10, 10);
-            paths.CreateRoutes(0,0);
-
-            foreach (var route in paths.Routes)
-            {
-                Console.WriteLine(route);
-            }
-
-            Console.WriteLine($"Result: number of routes: {paths.NumberOfRoutes}");
+            LatticePaths paths = new(20);
+            Console.WriteLine($"{Int32.MaxValue}");
+            Console.WriteLine($"Result: number of routes: {paths.Routes()}");
             Console.WriteLine($"({Environment.TickCount - start} ms)");
         }
 

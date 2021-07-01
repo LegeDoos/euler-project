@@ -19,50 +19,59 @@ namespace Problem_15
         /// Height of the grid
         /// </summary>
         public int Height { get; private set; }
-        
-        public int NumberOfRoutes { get; private set; }
-        public List<string> Routes{ get; set; }
 
-        public Dictionary<string, int> StepsFromNode { get; private set; } // <"x,y", nSteps>
-                                                                           
+        public Dictionary<string, int> StepsToEnd { get; private set; } // <"x,y", nStepsToEnd>
 
-        
-        
-        public LatticePaths(int _w, int _h)
+
+
+
+        public LatticePaths(int _size)
         {
-            Width = _w;
-            Height = _h;
-            Routes = new();
-            StepsFromNode = new();
+            Width = _size;
+            Height = _size;
+            StepsToEnd = new();
         }
 
-
-        public void CreateRoutes(int _x, int _y, string _current = "")
+        public int Routes()
         {
+            // end node
+            int a = Width;
+            int result = 0;
+            while (a >= 0)
+            {
+                result = RoutesFromNode(a, a);
+                a--;
+            }
+            return result; // last one was 0,0
+        }
+        
+
+        private int RoutesFromNode(int _x, int _y)
+        {
+            int nRoutes = 0;
+
             if (_x == Width && _y == Height)
             {
-                // done
-                Routes.Add(_current);
-                NumberOfRoutes++;
+                //end
+                return 1;
             }
-            else
+
+            // if not already processed and not at the end
+            if (!StepsToEnd.TryGetValue($"{_x},{_y}", out nRoutes))
             {
                 // next x
                 if (_x < Width)
                 {
-                    CreateRoutes(_x+1, _y, $"{_current}L"); // add one to the left
+                    nRoutes += RoutesFromNode(_x + 1, _y); // add one to the left
                 }
                 // next y
                 if (_y < Height)
                 {
-                    CreateRoutes(_x, _y+1, $"{_current}D"); // add one down
+                    nRoutes += RoutesFromNode(_x, _y + 1); // add one down
                 }
+                StepsToEnd.Add($"{_x},{_y}", nRoutes);
             }
-
-            if (_current is null)
-            {
-                throw new ArgumentNullException(nameof(_current));
-            }
+            return nRoutes;
         }
     }
 }
