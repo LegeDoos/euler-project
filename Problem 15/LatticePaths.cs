@@ -20,9 +20,19 @@ namespace Problem_15
         /// </summary>
         public int Height { get; private set; }
 
-        public Dictionary<string, int> StepsToEnd { get; private set; } // <"x,y", nStepsToEnd>
-
-
+        /// <summary>
+        /// Dictionary containing the steps to the end for a node:
+        /// <"x,y", nStepsToEnd>
+        /// </summary>
+        public Dictionary<string, long> StepsToEnd { get; private set; }
+        /// <summary>
+        /// Count number of lookups
+        /// </summary>
+        public int Lookup { get; private set; }
+        /// <summary>
+        /// Count number of calculates
+        /// </summary>
+        public int Calculate { get; private set; }
 
 
         public LatticePaths(int _size)
@@ -30,13 +40,15 @@ namespace Problem_15
             Width = _size;
             Height = _size;
             StepsToEnd = new();
+            StepsToEnd.Add($"{Width},{Height}", 1);
+            Calculate = 1;
         }
 
-        public int Routes()
+        public long Routes()
         {
             // end node
             int a = Width;
-            int result = 0;
+            long result = 0;
             while (a >= 0)
             {
                 result = RoutesFromNode(a, a);
@@ -45,20 +57,12 @@ namespace Problem_15
             return result; // last one was 0,0
         }
         
-
-        private int RoutesFromNode(int _x, int _y)
+        private long RoutesFromNode(int _x, int _y)
         {
-            int nRoutes = 0;
-
-            if (_x == Width && _y == Height)
-            {
-                //end
-                return 1;
-            }
-
             // if not already processed and not at the end
-            if (!StepsToEnd.TryGetValue($"{_x},{_y}", out nRoutes))
+            if (!StepsToEnd.TryGetValue($"{_x},{_y}", out long nRoutes))
             {
+                Calculate++;
                 // next x
                 if (_x < Width)
                 {
@@ -71,7 +75,24 @@ namespace Problem_15
                 }
                 StepsToEnd.Add($"{_x},{_y}", nRoutes);
             }
+            else
+            {
+                Lookup++;
+            }
             return nRoutes;
+        }
+
+        public void ShowRoutes(int _x, int _y, int _pad = 5)
+        {
+            for (int x = _x; x <= Width; x++)
+            {
+                string line = "";
+                for (int y = _y; y <= Height; y++)
+                {
+                    line = $"{line} {StepsToEnd[$"{x},{y}"].ToString().PadLeft(_pad, ' ')}";
+                }
+                Console.WriteLine(line);
+            }
         }
     }
 }
